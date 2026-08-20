@@ -458,6 +458,24 @@ app.post('/api/files/folder', async (req, res) => {
     const folderParentId = parentId || 'root';
     const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
+    // 0. Auto-Deduplicate Folder Name if same folder name already exists in target directory
+    let finalFolderName = name || 'Folder Baru';
+    const [existingFolders] = await pool.query(
+      'SELECT name FROM files WHERE owner_email = ? AND (folder_id = ? OR parent_id = ?) AND is_folder = 1',
+      [ownerEmail, folderParentId, folderParentId]
+    );
+    const existingFolderNamesSet = new Set(existingFolders.map((r) => (r.name || '').trim().toLowerCase()));
+
+    if (existingFolderNamesSet.has(finalFolderName.trim().toLowerCase())) {
+      let counter = 1;
+      let candidate = `${finalFolderName} (${counter})`;
+      while (existingFolderNamesSet.has(candidate.trim().toLowerCase())) {
+        counter++;
+        candidate = `${finalFolderName} (${counter})`;
+      }
+      finalFolderName = candidate;
+    }
+
     const [result] = await pool.query(
       `INSERT INTO files (
         uuid, name, original_name, is_folder, parent_id, folder_id, file_type, file_size_kb,
@@ -465,8 +483,8 @@ app.post('/api/files/folder', async (req, res) => {
       ) VALUES (?, ?, ?, 1, ?, ?, 'folder', 0, ?, 'umum', 'Umum', ?, ?, ?)`,
       [
         folderUuid,
-        name,
-        name,
+        finalFolderName,
+        name || finalFolderName,
         folderParentId,
         folderParentId,
         ownerEmail,
@@ -489,8 +507,8 @@ app.post('/api/files/folder', async (req, res) => {
       folder: {
         id: result.insertId,
         uuid: folderUuid,
-        name,
-        originalName: name,
+        name: finalFolderName,
+        originalName: name || finalFolderName,
         isFolder: true,
         parentId: folderParentId,
         folderId: folderParentId,
@@ -520,12 +538,35 @@ app.post('/api/files/upload', async (req, res) => {
     const fileUuid = file.uuid || ('file-' + crypto.randomUUID());
     const folderId = file.folderId || 'root';
     const ownerEmail = file.ownerEmail || 'user@example.com';
+    const originalRequestedName = file.name || 'file.png';
 
-    // 1. Save Physical File to Disk in /uploads/[account]/[folder]/[file]
+    // 0. Auto-Deduplicate Filename if same filename already exists in the target folder for this owner
+    let finalFileName = originalRequestedName;
+    const [existingRows] = await pool.query(
+      'SELECT name FROM files WHERE owner_email = ? AND (folder_id = ? OR parent_id = ?) AND is_folder = 0',
+      [ownerEmail, folderId, folderId]
+    );
+
+    const existingNamesSet = new Set(existingRows.map((r) => (r.name || '').trim().toLowerCase()));
+
+    if (existingNamesSet.has(originalRequestedName.trim().toLowerCase())) {
+      const ext = path.extname(originalRequestedName);
+      const baseName = path.basename(originalRequestedName, ext);
+      let counter = 1;
+      let candidate = `${baseName}(${counter})${ext}`;
+      while (existingNamesSet.has(candidate.trim().toLowerCase())) {
+        counter++;
+        candidate = `${baseName}(${counter})${ext}`;
+      }
+      finalFileName = candidate;
+      console.log(`🏷️ Auto-renamed duplicate uploaded file from "${originalRequestedName}" to "${finalFileName}" for ${ownerEmail}`);
+    }
+
+    // 1. Save Physical File to Disk in /uploads/[account]/[folder]/[finalFileName]
     const relativeFilePath = saveFileToPhysicalDisk(
       ownerEmail,
       folderId,
-      file.name,
+      finalFileName,
       file.fileDataUrl
     );
 
@@ -544,8 +585,8 @@ app.post('/api/files/upload', async (req, res) => {
       ) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         fileUuid,
-        file.name,
-        file.originalName || file.name,
+        finalFileName,
+        originalRequestedName,
         folderId,
         folderId,
         file.fileType || 'image/png',
@@ -577,8 +618,8 @@ app.post('/api/files/upload', async (req, res) => {
       file: {
         id: fileIntId,
         uuid: fileUuid,
-        name: file.name,
-        originalName: file.originalName || file.name,
+        name: finalFileName,
+        originalName: originalRequestedName,
         isFolder: false,
         parentId: folderId,
         folderId,
