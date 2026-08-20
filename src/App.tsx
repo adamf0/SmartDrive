@@ -340,7 +340,7 @@ export default function App() {
 
     if (newFile) {
       await refreshBackendData();
-      enqueueBackgroundProcessing(newFile.uuid, name, src, sizeKB, apiKey, () => {
+      enqueueBackgroundProcessing(newFile.uuid, newFile.name, src, sizeKB, apiKey, () => {
         refreshBackendData();
       });
     }

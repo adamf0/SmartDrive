@@ -549,6 +549,15 @@ app.post('/api/files/upload', async (req, res) => {
 
     const existingNamesSet = new Set(existingRows.map((r) => (r.name || '').trim().toLowerCase()));
 
+    console.log('DEBUG UPLOAD DEDUP:', {
+      ownerEmail,
+      folderId,
+      originalRequestedName,
+      existingRowsCount: existingRows.length,
+      existingNames: existingRows.map(r => r.name),
+      hasMatch: existingNamesSet.has(originalRequestedName.trim().toLowerCase())
+    });
+
     if (existingNamesSet.has(originalRequestedName.trim().toLowerCase())) {
       const ext = path.extname(originalRequestedName);
       const baseName = path.basename(originalRequestedName, ext);
