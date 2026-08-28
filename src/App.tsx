@@ -302,12 +302,11 @@ export default function App() {
     localStorage.setItem('gemini_api_key', key);
   };
 
-  // Upload File directly to MariaDB + Disk with UUID (Images & All Document Formats)
-  const handleUploadFile = async (src: string, name: string, sizeKB: number) => {
+  // Upload Multiple Files directly to MariaDB + Disk with UUID (Images & All Document Formats)
+  const handleMultipleUploadFiles = async (files: { src: string; name: string; fileSizeKB: number }[]) => {
     setIsUploadModalOpen(false);
-    if (!currentUser) return;
+    if (!currentUser || files.length === 0) return;
 
-    // Check if current view is inside a subfolder (?q=fld-...)
     let uploadFolderUuid = 'root';
     const hashMatch = window.location.hash.match(/[?&]q=([^&]+)/);
     if (hashMatch && hashMatch[1]) {
@@ -318,32 +317,39 @@ export default function App() {
       if (q) uploadFolderUuid = q;
     }
 
-    const ext = name.split('.').pop()?.toLowerCase() || '';
-    let fileMimeType = 'image/png';
-    if (ext === 'pdf') fileMimeType = 'application/pdf';
-    else if (ext === 'xlsx' || ext === 'xls') fileMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    else if (ext === 'docx' || ext === 'doc') fileMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    else if (ext === 'pptx' || ext === 'ppt') fileMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    else if (ext === 'csv') fileMimeType = 'text/csv';
-    else if (ext === 'jpg' || ext === 'jpeg') fileMimeType = 'image/jpeg';
-    else if (ext === 'webp') fileMimeType = 'image/webp';
+    for (const item of files) {
+      const ext = item.name.split('.').pop()?.toLowerCase() || '';
+      let fileMimeType = 'image/png';
+      if (ext === 'pdf') fileMimeType = 'application/pdf';
+      else if (ext === 'xlsx' || ext === 'xls') fileMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      else if (ext === 'docx' || ext === 'doc') fileMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      else if (ext === 'pptx' || ext === 'ppt') fileMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      else if (ext === 'csv') fileMimeType = 'text/csv';
+      else if (ext === 'jpg' || ext === 'jpeg') fileMimeType = 'image/jpeg';
+      else if (ext === 'webp') fileMimeType = 'image/webp';
 
-    const newFile = await uploadFileToBackend(
-      name,
-      fileMimeType,
-      sizeKB,
-      src,
-      currentUser.email,
-      currentUser.name,
-      uploadFolderUuid
-    );
+      const newFile = await uploadFileToBackend(
+        item.name,
+        fileMimeType,
+        item.fileSizeKB,
+        item.src,
+        currentUser.email,
+        currentUser.name,
+        uploadFolderUuid
+      );
 
-    if (newFile) {
-      await refreshBackendData();
-      enqueueBackgroundProcessing(newFile.uuid, newFile.name, src, sizeKB, apiKey, () => {
-        refreshBackendData();
-      });
+      if (newFile) {
+        enqueueBackgroundProcessing(newFile.uuid, newFile.name, item.src, item.fileSizeKB, apiKey, () => {
+          refreshBackendData();
+        });
+      }
     }
+    await refreshBackendData();
+  };
+
+  // Upload Single File fallback
+  const handleUploadFile = async (src: string, name: string, sizeKB: number) => {
+    await handleMultipleUploadFiles([{ src, name, fileSizeKB: sizeKB }]);
   };
 
   // Create Folder directly in MariaDB with UUID
@@ -679,6 +685,7 @@ export default function App() {
 
             <ImageUploader
               onImageSelected={(src, name, sizeKB) => handleUploadFile(src, name, sizeKB)}
+              onFilesSelected={(files) => handleMultipleUploadFiles(files)}
             />
           </div>
         </div>
