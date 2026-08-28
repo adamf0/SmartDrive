@@ -884,15 +884,21 @@ async function askGeminiDriveAssistant(
     };
   }
 
-  // Compact representation of attached reference files
+  // Full representation of attached reference files with complete OCR & AI analysis
   const attachedDetails = attachedRefFiles.map((item) => ({
     uuid: item.uuid,
     name: item.name,
+    fileType: item.fileType,
     category: item.categoryName || item.category,
+    detectedDocumentType: item.analysisResult?.sceneContext?.sceneType || item.analysisResult?.captions?.shortId || 'Dokumen',
+    primaryDomain: item.analysisResult?.sceneContext?.primaryDomain || 'Umum',
     shortSummary: item.analysisResult?.captions?.shortId || '',
     detailedContext: item.analysisResult?.captions?.detailedId || '',
     hashtags: item.analysisResult?.captions?.hashtags || item.tags || [],
-    ocrSnippet: (item.analysisResult?.ocr?.rawText || '').slice(0, 1000),
+    tagCategories: item.analysisResult?.tagCategories || [],
+    detectedObjects: item.analysisResult?.detectedObjects || [],
+    keyValuePairs: item.analysisResult?.ocr?.keyValuePairs || [],
+    ocrFullText: (item.analysisResult?.ocr?.rawText || '').slice(0, 15000),
   }));
 
   // Compact representation of all files in user's drive with AI analysis details
@@ -903,16 +909,17 @@ async function askGeminiDriveAssistant(
       name: item.name,
       isFolder: item.isFolder,
       category: item.categoryName || item.category,
+      documentType: item.analysisResult?.sceneContext?.sceneType || '',
       shortSummary: item.analysisResult?.captions?.shortId || '',
       detailedContext: item.analysisResult?.captions?.detailedId || '',
       hashtags: item.analysisResult?.captions?.hashtags || item.tags || [],
-      ocrSnippet: (item.analysisResult?.ocr?.rawText || '').slice(0, 500),
+      ocrSnippet: (item.analysisResult?.ocr?.rawText || '').slice(0, 1500),
     };
   });
 
   const attachedSection =
     attachedDetails.length > 0
-      ? `\n📌 BERKAS REFERENSI UTAMA YANG DILAMPIRKAN OLEH PENGGUNA:\n${JSON.stringify(attachedDetails, null, 2)}\nFokuskan analisis dan jawaban Anda secara mendalam pada berkas referensi utama di atas!\n`
+      ? `\n📌 BERKAS REFERENSI UTAMA YANG DILAMPIRKAN OLEH PENGGUNA:\n${JSON.stringify(attachedDetails, null, 2)}\nFokuskan analisis, penalaran, dan jawaban Anda secara mendalam pada berkas referensi utama di atas!\n`
       : '';
 
   const promptText = `Anda adalah SmartDrive AI Guardian & Assistant, sistem kecerdasan buatan terdepan dan penjaga keamanan platform Cloud Drive pengguna.
@@ -927,6 +934,25 @@ KEBIJAKAN KESELAMATAN & AI GUARDIAN RULES:
 3. ATURAN SCOPING RESOURCE SYSTEM & AKADEMIK:
    - DIPERBOLEHKAN: Pertanyaan tentang berkas/dokumen di Drive, isi konteks AI, OCR, ringkasan, pencarian berkas, serta pertanyaan akademik/penelitian terdahulu yang relevan dengan konteks berkas di Drive.
    - DITOLAK (OUT OF SCOPE): Pertanyaan umum yang sama sekali TIDAK BERKAITAN dengan berkas Drive maupun data sistem/dokumen (Contoh: "Berapa harga BTC?", "Siapa pemenang piala dunia?", "Cara membuat bom", "Gosip selebriti"). Jelaskan bahwa sistem ini khusus melayani pengelolaan dokumen & kecerdasan Drive.
+
+KAPABILITAS ANALISIS DOKUMEN & JAWABAN (COMPREHENSIVE MULTI-DOMAIN REASONING):
+Saat pengguna menanyakan tentang berkas yang dilampirkan atau berkas di Drive, Anda HARUS mampu menangani SELURUH jenis pertanyaan berikut secara komprehensif, faktual, dan presisi:
+
+1. IDENTIFIKASI & KLASIFIKASI DOKUMEN:
+   Identifikasi nama spesifik jenis dokumen secara murni/organik dari isi teks/visual (tanpa hardcode), seperti jenis dokumen resmi, surat perjanjian, laporan, kuitansi, sertifikat, atau dokumen akademik lainnya. Sebutkan nama jenis dokumen secara spesifik di awal jawaban.
+
+2. EKSTRAKSI ISI & KONTEKS SEMANTIK:
+   Jelaskan esensi dokumen, tujuan utama, pihak-pihak/instansi yang terlibat, nomor dokumen, tanggal penting, pasal/klausul, serta ringkasan faktual secara komprehensif.
+
+3. TAG, KATEGORI & STRUKTUR OBJEK:
+   Uraikan domain utama, kategori tag, daftar tagar, serta komponen/objek struktural (tabel, stempel, tanda tangan, baris data) yang terdapat di dalam berkas.
+
+4. PERHITUNGAN MATEMATIS & KALKULASI DATA:
+   Lakukan kalkulasi kuantitatif, penjumlahan nominal uang, perkalian volume x tarif, persentase, atau perbandingan angka secara akurat dari data nominal atau tabel di dalam dokumen jika pengguna meminta perhitungan.
+
+5. PENALARAN LOGIS & EVALUASI (REASONING / NALAR):
+   Berikan analisis penalaran logis, jawaban "mengapa" dan "bagaimana", implikasi hukum/akademik, serta evaluasi rasional dari esensi isi dokumen untuk menjawab pertanyaan pengguna dengan nalar tinggi.
+
 ${attachedSection}
 Daftar Berkas & Analisis Konteks AI di Drive Pengguna:
 \`\`\`json
@@ -939,9 +965,25 @@ Pertanyaan Pengguna:
 Format Output JSON MURNI:
 {
   "isRejected": false,
-  "answer": "Penjelasan naratif Bahasa Indonesia jika diterima, ATAU kalimat penolakan sopan & profesional jika ditolak/out of scope.",
+  "answer": "Penjelasan naratif Bahasa Indonesia yang komprehensif, menjawab pertanyaan pengguna secara presisi (baik mengenai jenis dokumen, konteks isi, tag/kategori, perhitungan angka, maupun penalaran nalar).",
   "relevantUuids": ["uuid-berkas-1"]
 }`;
+
+  // Build multimodal content parts array (supports sending inline PDF & Image base64 data to Gemini)
+  const parts: any[] = [{ text: promptText }];
+  for (const item of attachedRefFiles) {
+    if (item.fileDataUrl && item.fileDataUrl.startsWith('data:')) {
+      const match = item.fileDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        parts.push({
+          inlineData: {
+            mimeType: match[1],
+            data: match[2],
+          },
+        });
+      }
+    }
+  }
 
   const models = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'];
   let resultJson: any = null;
@@ -953,7 +995,7 @@ Format Output JSON MURNI:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 4096,
