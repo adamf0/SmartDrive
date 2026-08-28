@@ -361,57 +361,59 @@ Teks Isi Dokumen:
 ${documentText.slice(0, 15000)}
 """
 
-Pedoman Analisis:
-1. Pemahaman Menyeluruh & Netral: Pahami seluruh esensi konten secara murni dari data yang tertulis (teks naratif, struktur tabel, angka, relasi variabel, pertanyaan, entitas, maupun skema data) tanpa membatasi diri pada bidang/domain tertentu.
-2. Analisis Faktual: Ekstrak fakta nyata dari konten. Uraikan konteks secara komprehensif, sebutkan metrik/indikator kunci, pihak/entitas yang terlibat, serta tujuan isi dokumen.
-3. Fokus Substansi: Abaikan seluruh metadata teknis biner, hash file, tag C2PA, atau sertifikat digital. Fokus 100% pada isi/materi substantif dokumen.
-4. Klasifikasi Terbuka: Tentukan tipe dokumen, domain, kategori tag, dan objek struktural secara dinamis berdasarkan data aktual yang tertera di dalam dokumen.
+Pedoman Analisis Utama:
+1. IDENTIFIKASI EKSAK & SPESIFIK JENIS DOKUMEN:
+   Periksa kop surat/header, judul utama, klausul formal, istilah resmi/hukum, nomor dokumen, serta skema tabel untuk menentukan **Klasifikasi Jenis Dokumen secara Sangat Spesifik & Organik** berdasarkan tafsiran data aktual (Tentukan dari isi murni tanpa di-hardcode; contohnya: "Implementation Arrangement (IA)", "Memorandum of Agreement (MoA)", "Memorandum of Understanding (MoU)", "Rencana Anggaran Biaya (RAB)", "Ijazah Akademik", "Transkrip Nilai / Akademik", "Raport Hasil Belajar", "Surat Keputusan (SK)", "Surat Tugas Resmi", "Kuitansi / Invoice Pembayaran", "Proposal Kegiatan / Usulan", "Surat Perjanjian Kerja", "Laporan Keuangan", dll.).
+2. Pemahaman Menyeluruh & Netral: Pahami seluruh esensi konten secara murni dari data yang tertulis (teks naratif, struktur tabel, angka, relasi variabel, pertanyaan, entitas, maupun skema data).
+3. Analisis Faktual: Ekstrak fakta nyata dari konten. Uraikan konteks secara komprehensif, sebutkan nomor dokumen (jika ada), metrik/indikator kunci, pihak/entitas yang terlibat, serta tujuan utama isi dokumen.
+4. Fokus Substansi: Abaikan seluruh metadata teknis biner, hash file, tag C2PA, atau sertifikat digital. Fokus 100% pada isi/materi substantif dokumen.
 
 Output HARUS berupa JSON MURNI (tanpa format markdown codeblock seperti \`\`\`json) dengan struktur berikut:
 {
-  "detailedId": "Deskripsi faktual, menyeluruh, dan komprehensif mengenai konteks dokumen dalam Bahasa Indonesia",
-  "detailedEn": "Comprehensive and factual description of document context in English",
-  "shortId": "Ringkasan esensi dokumen dalam 1 kalimat padat (Bahasa Indonesia)",
-  "shortEn": "Concise 1-sentence summary of the document essence (English)",
+  "detailedId": "Penjelasan mendalam dalam Bahasa Indonesia yang wajib diawali dengan menyebutkan secara eksplisit jenis spesifik dokumen (misal: 'Dokumen ini merupakan Implementation Arrangement (IA)...' atau 'Dokumen ini adalah Rencana Anggaran Biaya (RAB)...'), nomor dokumen (jika ada), pihak-pihak terkait, dan substansi tujuan dokumen.",
+  "detailedEn": "Comprehensive description in English starting with the exact document classification (e.g. Implementation Arrangement, MoA, MoU, Budget Plan, Certificate, Decision Letter) and its full context.",
+  "shortId": "Ringkasan 1 kalimat padat dalam Bahasa Indonesia yang WAJIB menyebutkan nama spesifik jenis dokumen di awal kalimat",
+  "shortEn": "Concise 1-sentence summary in English explicitly identifying the specific document type at the start",
   "altText": "Deskripsi aksesibilitas singkat mengenai isi/tampilan visual dokumen",
-  "socialCaption": "Teks ringkasan/caption informatif yang menarik + emoji yang relevan + hashtag",
-  "hashtags": ["#TagarSpesifik1", "#TagarSpesifik2", "#TagarSpesifik3", "#TagarSpesifik4"],
-  "sceneType": "Bentuk atau tipe fungsional dokumen yang ditentukan secara mandiri dari isi",
-  "primaryDomain": "Bidang atau domain utama yang teridentifikasi secara organik dari konten",
+  "socialCaption": "Teks ringkasan/caption informatif yang menarik + emoji relevan + hashtag spesifik",
+  "hashtags": ["#JenisDokumenSpesifik", "#TopikUtama1", "#InstansiPihak2", "#Kategori3"],
+  "sceneType": "Nama Spesifik Jenis Dokumen hasil analisis organik dari isi (misal: 'Implementation Arrangement (IA)', 'Memorandum of Agreement (MoA)', 'Memorandum of Understanding (MoU)', 'Rencana Anggaran Biaya (RAB)', 'Ijazah Akademik', 'Transkrip Nilai', 'Surat Keputusan (SK)', dll.)",
+  "primaryDomain": "Bidang atau domain utama yang teridentifikasi secara organik dari konten (misal: Kerjasama & Kemitraan Institusi, Keuangan & Anggaran, Pendidikan & Akademik, Hukum & Governance, dll.)",
   "tagCategories": [
     {
-      "category": "Topik Utama",
-      "categoryId": "Topik Utama",
+      "category": "Klasifikasi & Jenis Dokumen",
+      "categoryId": "Klasifikasi & Jenis Dokumen",
       "tags": [
-        { "name": "Tag Topik 1", "nameId": "Tag Topik 1", "score": 0.99 }
+        { "name": "Nama Spesifik Jenis Dokumen", "nameId": "Nama Spesifik Jenis Dokumen", "score": 0.99 },
+        { "name": "Bentuk Susunan Konten", "nameId": "Bentuk Susunan Konten", "score": 0.95 }
+      ]
+    },
+    {
+      "category": "Topik & Subjek Utama",
+      "categoryId": "Topik & Subjek Utama",
+      "tags": [
+        { "name": "Tag Topik Utama 1", "nameId": "Tag Topik Utama 1", "score": 0.95 }
       ]
     },
     {
       "category": "Entitas & Pihak Terkait",
       "categoryId": "Entitas & Pihak Terkait",
       "tags": [
-        { "name": "Nama Entitas 1", "nameId": "Nama Entitas 1", "score": 0.95 }
+        { "name": "Nama Entitas / Instansi / Pihak 1", "nameId": "Nama Entitas 1", "score": 0.95 }
       ]
     },
     {
-      "category": "Metrik & Indikator",
-      "categoryId": "Metrik & Indikator",
+      "category": "Metrik, Angka & Indikator",
+      "categoryId": "Metrik, Angka & Indikator",
       "tags": [
-        { "name": "Nama Metrik/Parameter", "nameId": "Nama Metrik/Parameter", "score": 0.90 }
-      ]
-    },
-    {
-      "category": "Format & Struktur",
-      "categoryId": "Format & Struktur",
-      "tags": [
-        { "name": "Bentuk Susunan Konten", "nameId": "Bentuk Susunan Konten", "score": 0.95 }
+        { "name": "Nama Metrik/Nominal/Parameter", "nameId": "Nama Metrik/Parameter", "score": 0.90 }
       ]
     }
   ],
   "detectedObjects": [
     {
-      "label": "Nama komponen struktural yang terdeteksi (EN)",
-      "labelId": "Nama komponen struktural yang terdeteksi (ID)",
+      "label": "Nama komponen/elemen struktural dokumen (EN)",
+      "labelId": "Nama komponen/elemen struktural dokumen (ID)",
       "confidence": 95,
       "attributes": ["Atribut 1", "Atribut 2"]
     }

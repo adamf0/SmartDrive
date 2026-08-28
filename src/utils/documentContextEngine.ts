@@ -42,28 +42,57 @@ export function synthesizeDocumentAnalysis(
   const rawText = (extractedText || '').trim();
   const lowerText = rawText.toLowerCase();
 
-  // 1. Identify Document Format & Family
-  let docFamily = 'Dokumen Digital';
-  let formatLabel = ext.toUpperCase();
-
-  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv' || ext === 'ods') {
-    docFamily = 'Buku Kerja Lembar Sebar (Spreadsheet / Excel)';
-    formatLabel = ext === 'csv' ? 'CSV Tabular' : `Microsoft Excel (.${ext})`;
-  } else if (ext === 'docx' || ext === 'doc' || ext === 'odt' || ext === 'rtf') {
-    docFamily = 'Naskah Dokumen Teks Resmi (Word Document)';
-    formatLabel = `Microsoft Word (.${ext})`;
-  } else if (ext === 'pptx' || ext === 'ppt' || ext === 'odp') {
-    docFamily = 'Slide Materi Presentasi (PowerPoint)';
-    formatLabel = `Microsoft PowerPoint (.${ext})`;
-  } else if (ext === 'pdf') {
-    docFamily = 'Arsip Portabel Digital (Portable Document Format)';
-    formatLabel = 'Adobe PDF (.pdf)';
+  // 1. Identify Specific Document Type Organically from Text & Keywords
+  let detectedDocType = 'Dokumen Digital';
+  if (lowerText.includes('implementation of arrangement') || lowerText.includes('implementation arrangement') || lowerText.includes('ia/')) {
+    detectedDocType = 'Implementation Arrangement (IA)';
+  } else if (lowerText.includes('memorandum of agreement') || lowerText.includes('perjanjian kerja sama') || lowerText.includes('perjanjian kerjasama') || lowerText.includes('moa/')) {
+    detectedDocType = 'Memorandum of Agreement (MoA)';
+  } else if (lowerText.includes('memorandum of understanding') || lowerText.includes('nota kesepahaman') || lowerText.includes('mou/')) {
+    detectedDocType = 'Memorandum of Understanding (MoU)';
+  } else if (lowerText.includes('rencana anggaran biaya') || lowerText.includes('rencana anggaran') || lowerText.includes(' rab ') || lowerText.startsWith('rab ')) {
+    detectedDocType = 'Rencana Anggaran Biaya (RAB)';
+  } else if (lowerText.includes('ijazah') || lowerText.includes('menyatakan bahwa lulus')) {
+    detectedDocType = 'Ijazah Akademik';
+  } else if (lowerText.includes('transkrip nilai') || lowerText.includes('transkrip akademik') || lowerText.includes('indeks prestasi kumulatif')) {
+    detectedDocType = 'Transkrip Nilai Akademik';
+  } else if (lowerText.includes('laporan hasil belajar') || lowerText.includes('raport') || lowerText.includes('rapor')) {
+    detectedDocType = 'Raport Hasil Belajar';
+  } else if (lowerText.includes('surat keputusan') || lowerText.includes('memutuskan:') || lowerText.includes('menetapkan:')) {
+    detectedDocType = 'Surat Keputusan (SK)';
+  } else if (lowerText.includes('surat tugas') || lowerText.includes('menugaskan kepada')) {
+    detectedDocType = 'Surat Tugas Resmi';
+  } else if (lowerText.includes('kuitansi') || lowerText.includes('invoice') || lowerText.includes('bukti pembayaran')) {
+    detectedDocType = 'Kuitansi / Invoice Pembayaran';
+  } else if (lowerText.includes('proposal') || lowerText.includes('usulan kegiatan')) {
+    detectedDocType = 'Proposal Kegiatan / Usulan';
   }
 
-  // 2. Generic Domain Label
-  const primaryDomain = 'Umum';
+  // Identify Format & Family
+  let formatLabel = ext.toUpperCase();
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv' || ext === 'ods') {
+    formatLabel = ext === 'csv' ? 'CSV Tabular' : `Microsoft Excel (.${ext})`;
+  } else if (ext === 'docx' || ext === 'doc' || ext === 'odt' || ext === 'rtf') {
+    formatLabel = `Microsoft Word (.${ext})`;
+  } else if (ext === 'pptx' || ext === 'ppt' || ext === 'odp') {
+    formatLabel = `Microsoft PowerPoint (.${ext})`;
+  } else if (ext === 'pdf') {
+    formatLabel = `Adobe PDF (.pdf)`;
+  }
 
-  // Extract key terms dynamically from extracted text without hardcoded regex rules
+  // Determine Domain
+  let primaryDomain = 'Umum';
+  if (detectedDocType.includes('IA') || detectedDocType.includes('MoA') || detectedDocType.includes('MoU')) {
+    primaryDomain = 'Kerjasama & Kemitraan Institusi';
+  } else if (detectedDocType.includes('RAB') || detectedDocType.includes('Invoice') || detectedDocType.includes('Kuitansi')) {
+    primaryDomain = 'Keuangan & Anggaran';
+  } else if (detectedDocType.includes('Ijazah') || detectedDocType.includes('Transkrip') || detectedDocType.includes('Raport')) {
+    primaryDomain = 'Pendidikan & Akademik';
+  } else if (detectedDocType.includes('SK') || detectedDocType.includes('Tugas')) {
+    primaryDomain = 'Hukum & Tata Kelola Legalisasi';
+  }
+
+  // Extract key terms dynamically from extracted text
   const textLines = rawText.split('\n').map((l) => l.trim()).filter((l) => l.length > 5);
   const topLines = textLines.slice(0, 8).join(' | ');
 
@@ -83,19 +112,29 @@ export function synthesizeDocumentAnalysis(
     .filter((w) => !['dalam', 'dengan', 'adalah', 'untuk', 'yang', 'pada', 'atau', 'serta', 'dapat'].includes(w));
 
   // Dynamic Captions
-  const snippetStr = topLines ? ` Berisi konten: "${topLines.slice(0, 200)}...".` : '';
-  const detailedId = `Berkas ${docFamily} berjudul "${fileName}" berukuran ${fileSizeKB} KB.${snippetStr}`;
-  const shortId = `Dokumen ${docFamily}: "${cleanName}".`;
+  const snippetStr = topLines ? ` Berisi ringkasan konten: "${topLines.slice(0, 200)}...".` : '';
+  const detailedId = `Dokumen ini merupakan berkas ${detectedDocType} berjudul "${fileName}" dalam format ${formatLabel} berukuran ${fileSizeKB} KB.${snippetStr}`;
+  const shortId = `Dokumen ${detectedDocType}: "${cleanName}".`;
 
   // Dynamic Hashtags
-  const hashtags: string[] = [`#Format${ext.toUpperCase()}`];
-  sortedKeywords.slice(0, 5).forEach((kw) => {
+  const hashtags: string[] = [`#${detectedDocType.replace(/[^a-zA-Z0-9]/g, '')}`, `#Format${ext.toUpperCase()}`];
+  sortedKeywords.slice(0, 4).forEach((kw) => {
     hashtags.push(`#${kw.charAt(0).toUpperCase() + kw.slice(1)}`);
   });
-  hashtags.push('#LuminousDrive', '#DokumenDigital');
+  hashtags.push('#LuminousDrive');
 
   // Dynamic Tag Categories
-  const tagCategories: TagCategory[] = [];
+  const tagCategories: TagCategory[] = [
+    {
+      category: 'Klasifikasi & Jenis Dokumen',
+      categoryId: 'Klasifikasi & Jenis Dokumen',
+      tags: [
+        { name: detectedDocType, nameId: detectedDocType, score: 0.99 },
+        { name: primaryDomain, nameId: primaryDomain, score: 0.98 },
+        { name: formatLabel, nameId: formatLabel, score: 0.95 },
+      ],
+    },
+  ];
 
   if (sortedKeywords.length > 0) {
     tagCategories.push({
@@ -104,30 +143,20 @@ export function synthesizeDocumentAnalysis(
       tags: sortedKeywords.slice(0, 6).map((kw) => ({
         name: kw.charAt(0).toUpperCase() + kw.slice(1),
         nameId: kw,
-        score: 0.96,
+        score: 0.95,
       })),
     });
   }
-
-  tagCategories.push({
-    category: 'Klasifikasi & Format',
-    categoryId: 'Klasifikasi & Format',
-    tags: [
-      { name: primaryDomain, nameId: primaryDomain, score: 0.99 },
-      { name: formatLabel, nameId: formatLabel, score: 0.98 },
-      { name: docFamily, nameId: docFamily, score: 0.95 },
-    ],
-  });
 
   // Dynamic Objects
   const detectedObjects: DetectedObject[] = [
     {
       id: 'doc-obj-1',
-      label: docFamily,
-      labelId: `Struktur Dokumen ${formatLabel}`,
+      label: detectedDocType,
+      labelId: `Struktur ${detectedDocType}`,
       confidence: 98,
       category: 'document',
-      attributes: [primaryDomain, `${fileSizeKB} KB`],
+      attributes: [primaryDomain, formatLabel, `${fileSizeKB} KB`],
     },
   ];
 
@@ -147,16 +176,16 @@ export function synthesizeDocumentAnalysis(
     }),
     captions: {
       detailedId,
-      detailedEn: `Digital document ${docFamily} named "${fileName}" (${fileSizeKB} KB).`,
+      detailedEn: `Digital document ${detectedDocType} named "${fileName}" (${fileSizeKB} KB).`,
       shortId,
-      shortEn: `${docFamily}: ${fileName}.`,
-      altText: `Dokumen ${docFamily} ${fileName} format ${formatLabel}.`,
+      shortEn: `${detectedDocType}: ${fileName}.`,
+      altText: `Dokumen ${detectedDocType} ${fileName} format ${formatLabel}.`,
       socialCaption: `${shortId} 📄📁 ${hashtags.slice(0, 3).join(' ')}`,
       hashtags: Array.from(new Set(hashtags)),
     },
     sceneContext: {
-      sceneType: docFamily,
-      sceneTypeId: docFamily,
+      sceneType: detectedDocType,
+      sceneTypeId: detectedDocType,
       primaryDomain,
       indoorOutdoor: 'Document/Digital',
       lightingCondition: 'Digital Document Structure',
@@ -177,7 +206,7 @@ export function synthesizeDocumentAnalysis(
       blocks: [],
       keyValuePairs: [
         { key: 'Nama Dokumen', value: fileName, confidence: 0.99 },
-        { key: 'Tipe Dokumen', value: docFamily, confidence: 0.99 },
+        { key: 'Tipe Dokumen', value: detectedDocType, confidence: 0.99 },
         { key: 'Format / Ekstensi', value: formatLabel, confidence: 0.99 },
         { key: 'Ukuran Berkas', value: `${fileSizeKB} KB`, confidence: 0.99 },
       ],
