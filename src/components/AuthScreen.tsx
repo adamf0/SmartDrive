@@ -84,7 +84,7 @@ export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
               <Cloud className="w-6 h-6 fill-white" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-950 font-display tracking-tight">
-              Luminous Files
+              SmartDrive
             </h1>
           </div>
           <p className="text-sm text-slate-500 font-medium">

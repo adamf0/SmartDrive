@@ -541,7 +541,7 @@ export default function App() {
 
                   <div className="flex items-center gap-2 text-xs">
                     <LayoutDashboard className="w-4 h-4 text-indigo-600" />
-                    <span className="text-slate-500">Luminous Files</span>
+                    <span className="text-slate-500">SmartDrive</span>
                     <span className="text-slate-400">/</span>
                     <span className="font-bold text-slate-900">
                       Ekstraksi AI Workbench

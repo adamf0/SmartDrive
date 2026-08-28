@@ -81,7 +81,7 @@ export function Sidebar({
         />
       )}
 
-      {/* Main Luminous Files Sidebar Navigation */}
+      {/* Main SmartDrive Sidebar Navigation */}
       <aside
         className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-white border-r border-slate-100 shadow-[0px_4px_20px_rgba(0,0,0,0.03)] flex flex-col p-5 transition-transform duration-300 md:translate-x-0 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
@@ -94,7 +94,7 @@ export function Sidebar({
           </div>
           <div>
             <h1 className="text-lg font-extrabold text-indigo-950 font-display tracking-tight leading-tight">
-              Luminous Files
+              SmartDrive
             </h1>
             <p className="text-[11px] text-slate-500 font-medium">Smart AI Cloud Drive</p>
           </div>

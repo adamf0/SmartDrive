@@ -121,7 +121,7 @@ export function synthesizeDocumentAnalysis(
   sortedKeywords.slice(0, 4).forEach((kw) => {
     hashtags.push(`#${kw.charAt(0).toUpperCase() + kw.slice(1)}`);
   });
-  hashtags.push('#LuminousDrive');
+  hashtags.push('#SmartDrive');
 
   // Dynamic Tag Categories
   const tagCategories: TagCategory[] = [

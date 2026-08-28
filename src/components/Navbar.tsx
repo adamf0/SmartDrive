@@ -52,7 +52,7 @@ export function Navbar({
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Luminous Search Bar */}
+        {/* SmartDrive Search Bar */}
         <div className="relative flex items-center w-full max-w-md h-10 sm:h-11 rounded-full bg-slate-100/90 px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-600/30 border border-slate-200/60 transition-all shadow-inner">
           <Search className="w-4 h-4 text-slate-400 mr-2.5 flex-shrink-0" />
           <input

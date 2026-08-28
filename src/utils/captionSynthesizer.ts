@@ -83,7 +83,7 @@ export function synthesizeMultimodalAnalysis(
   uniqueKeywords.slice(0, 5).forEach((kw) => {
     hashtags.push(`#${kw.charAt(0).toUpperCase() + kw.slice(1)}`);
   });
-  hashtags.push('#LuminousDrive', '#DokumentasiVisual');
+  hashtags.push('#SmartDrive', '#DokumentasiVisual');
 
   const captions: CaptionData = {
     detailedId,

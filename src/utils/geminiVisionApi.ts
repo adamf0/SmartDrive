@@ -554,7 +554,7 @@ Output HARUS berupa JSON MURNI (tanpa format markdown codeblock seperti \`\`\`js
       shortEn: parsed.shortEn || `Document: ${fileName}`,
       altText: parsed.altText || `Dokumen digital ${fileName}`,
       socialCaption: parsed.socialCaption || `Dokumen ${fileName} 📄📁`,
-      hashtags: parsed.hashtags || ['#DokumenDigital', '#AnalisisAI', '#LuminousDrive'],
+      hashtags: parsed.hashtags || ['#DokumenDigital', '#AnalisisAI', '#SmartDrive'],
     },
     sceneContext: {
       sceneType: parsed.sceneType || 'Dokumen Digital Terstruktur',

@@ -142,7 +142,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
           {
             id: 'welcome-1',
             sender: 'ai',
-            text: 'Halo! Saya **Luminous Smart AI Assistant** (Powered by Gemini AI). Anda dapat menanyakan isi konteks dokumen/foto di Drive Anda, atau meminta saya mencarikan berkas yang relevan secara cerdas!',
+            text: 'Halo! Saya **SmartDrive AI Assistant** (Powered by Gemini AI). Anda dapat menanyakan isi konteks dokumen/foto di Drive Anda, atau meminta saya mencarikan berkas yang relevan secara cerdas!',
             timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
           },
         ],
@@ -419,7 +419,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
 
           <div>
             <h3 className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
-              <span>{showHistoryView ? 'Riwayat Chat Gemini' : activeSession?.title || 'Luminous AI Chat'}</span>
+              <span>{showHistoryView ? 'Riwayat Chat Gemini' : activeSession?.title || 'SmartDrive AI Chat'}</span>
             </h3>
             <p className="text-[10px] text-indigo-200/90 font-medium flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-400 inline" />
@@ -854,12 +854,12 @@ function checkLocalGuardianPreFilter(query: string): string | null {
 
   // 1. Malicious Hacking / Injection / Penetration Attempts
   if (/hack|exploit|sql injection|union select|drop database|<script|eval\(|bypass password|crawling server|port scan/i.test(q)) {
-    return '🛡️ **Guardian Security Alert**: Permintaan peretasan (hacking), penetration testing, manipulasi SQL/script, atau crawling server luar dilarang keras demi keamanan platform Luminous Cloud Drive.';
+    return '🛡️ **Guardian Security Alert**: Permintaan peretasan (hacking), penetration testing, manipulasi SQL/script, atau crawling server luar dilarang keras demi keamanan platform SmartDrive.';
   }
 
   // 2. Profanity / Inappropriate Content
   if (/\b(anjing|babi|kontol|memek|bangsat|tai|pantat|goblok)\b/i.test(q)) {
-    return '🛡️ **Guardian Safety Notice**: Harap gunakan bahasa yang sopan dan profesional saat berkomunikasi dengan Luminous AI Assistant.';
+    return '🛡️ **Guardian Safety Notice**: Harap gunakan bahasa yang sopan dan profesional saat berkomunikasi dengan SmartDrive AI Assistant.';
   }
 
   return null;
@@ -915,7 +915,7 @@ async function askGeminiDriveAssistant(
       ? `\n📌 BERKAS REFERENSI UTAMA YANG DILAMPIRKAN OLEH PENGGUNA:\n${JSON.stringify(attachedDetails, null, 2)}\nFokuskan analisis dan jawaban Anda secara mendalam pada berkas referensi utama di atas!\n`
       : '';
 
-  const promptText = `Anda adalah Luminous AI Guardian & Assistant, sistem kecerdasan buatan terdepan dan penjaga keamanan platform Cloud Drive pengguna.
+  const promptText = `Anda adalah SmartDrive AI Guardian & Assistant, sistem kecerdasan buatan terdepan dan penjaga keamanan platform Cloud Drive pengguna.
 
 KEBIJAKAN KESELAMATAN & AI GUARDIAN RULES:
 1. ATURAN PENOLAKAN KONTEN TIDAK PANTAS:

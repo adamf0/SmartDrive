@@ -98,7 +98,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <span>Smart Multimodal AI Drive System</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-            Selamat Datang di Luminous Drive, {userName}
+            Selamat Datang di SmartDrive, {userName}
           </h2>
           <p className="text-xs sm:text-sm text-indigo-200/90 leading-relaxed">
             Semua dokumen Anda tersimpan aman, terorganisasi dalam struktur direktori MariaDB, dan di-ekstraksi secara otomatis menggunakan Gemini AI Vision.
