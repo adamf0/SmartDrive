@@ -362,23 +362,23 @@ ${documentText.slice(0, 15000)}
 """
 
 Pedoman Analisis Utama:
-1. IDENTIFIKASI EKSAK & SPESIFIK JENIS DOKUMEN:
-   Periksa kop surat/header, judul utama, klausul formal, istilah resmi/hukum, nomor dokumen, serta skema tabel untuk menentukan **Klasifikasi Jenis Dokumen secara Sangat Spesifik & Organik** berdasarkan tafsiran data aktual (Tentukan dari isi murni tanpa di-hardcode; contohnya: "Implementation Arrangement (IA)", "Memorandum of Agreement (MoA)", "Memorandum of Understanding (MoU)", "Rencana Anggaran Biaya (RAB)", "Ijazah Akademik", "Transkrip Nilai / Akademik", "Raport Hasil Belajar", "Surat Keputusan (SK)", "Surat Tugas Resmi", "Kuitansi / Invoice Pembayaran", "Proposal Kegiatan / Usulan", "Surat Perjanjian Kerja", "Laporan Keuangan", dll.).
+1. IDENTIFIKASI EKSAK & SPESIFIK JENIS DOKUMEN (MURNI ORGANIK / TANPA DAFTAR CONTOH):
+   Periksa secara cermat kop surat/header, judul utama, klausul formal, istilah resmi/hukum, nomor dokumen, serta skema tabel untuk menentukan **Nama Spesifik Jenis Dokumen** murni dari data aktual yang tertera di dalam dokumen. Dilarang keras menggunakan label generik (seperti "Dokumen Digital", "File PDF", atau "Teks Resmi"). AI harus secara mandiri menganalisis esensi semantik dokumen dan merumuskan nama klasifikasi jenis dokumen yang paling akurat, presisi, dan spesifik dalam Bahasa Indonesia.
 2. Pemahaman Menyeluruh & Netral: Pahami seluruh esensi konten secara murni dari data yang tertulis (teks naratif, struktur tabel, angka, relasi variabel, pertanyaan, entitas, maupun skema data).
 3. Analisis Faktual: Ekstrak fakta nyata dari konten. Uraikan konteks secara komprehensif, sebutkan nomor dokumen (jika ada), metrik/indikator kunci, pihak/entitas yang terlibat, serta tujuan utama isi dokumen.
 4. Fokus Substansi: Abaikan seluruh metadata teknis biner, hash file, tag C2PA, atau sertifikat digital. Fokus 100% pada isi/materi substantif dokumen.
 
 Output HARUS berupa JSON MURNI (tanpa format markdown codeblock seperti \`\`\`json) dengan struktur berikut:
 {
-  "detailedId": "Penjelasan mendalam dalam Bahasa Indonesia yang wajib diawali dengan menyebutkan secara eksplisit jenis spesifik dokumen (misal: 'Dokumen ini merupakan Implementation Arrangement (IA)...' atau 'Dokumen ini adalah Rencana Anggaran Biaya (RAB)...'), nomor dokumen (jika ada), pihak-pihak terkait, dan substansi tujuan dokumen.",
-  "detailedEn": "Comprehensive description in English starting with the exact document classification (e.g. Implementation Arrangement, MoA, MoU, Budget Plan, Certificate, Decision Letter) and its full context.",
+  "detailedId": "Penjelasan mendalam dalam Bahasa Indonesia yang WAJIB diawali dengan menyebutkan secara eksplisit nama spesifik jenis dokumen hasil identifikasi mandiri AI, nomor dokumen (jika ada), pihak-pihak terkait, dan substansi tujuan dokumen.",
+  "detailedEn": "Comprehensive description in English starting with the exact document classification independently identified by AI and its full context.",
   "shortId": "Ringkasan 1 kalimat padat dalam Bahasa Indonesia yang WAJIB menyebutkan nama spesifik jenis dokumen di awal kalimat",
   "shortEn": "Concise 1-sentence summary in English explicitly identifying the specific document type at the start",
   "altText": "Deskripsi aksesibilitas singkat mengenai isi/tampilan visual dokumen",
   "socialCaption": "Teks ringkasan/caption informatif yang menarik + emoji relevan + hashtag spesifik",
   "hashtags": ["#JenisDokumenSpesifik", "#TopikUtama1", "#InstansiPihak2", "#Kategori3"],
-  "sceneType": "Nama Spesifik Jenis Dokumen hasil analisis organik dari isi (misal: 'Implementation Arrangement (IA)', 'Memorandum of Agreement (MoA)', 'Memorandum of Understanding (MoU)', 'Rencana Anggaran Biaya (RAB)', 'Ijazah Akademik', 'Transkrip Nilai', 'Surat Keputusan (SK)', dll.)",
-  "primaryDomain": "Bidang atau domain utama yang teridentifikasi secara organik dari konten (misal: Kerjasama & Kemitraan Institusi, Keuangan & Anggaran, Pendidikan & Akademik, Hukum & Governance, dll.)",
+  "sceneType": "Nama Spesifik Jenis Dokumen hasil identifikasi mandiri dari esensi data aktual dokumen",
+  "primaryDomain": "Bidang atau domain utama yang teridentifikasi secara murni dari konten dokumen",
   "tagCategories": [
     {
       "category": "Klasifikasi & Jenis Dokumen",
