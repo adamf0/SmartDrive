@@ -349,7 +349,33 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
         ragQuery = `[KUTIPAN TEKS/KODE YANG DIRUJUK PENGGUNA]:\n"${currentQuoted}"\n\nPERTANYAAN PENGGUNA:\n${q}`;
       }
 
-      const { answer, matchedFiles } = await askGeminiDriveAssistant(ragQuery, currentAttached, allItems, apiKey);
+      // Collect chat history and all session-attached files to maintain context continuity
+      const activeSession = sessions.find((s) => s.id === activeSessionId);
+      const previousMessages = (activeSession?.messages || [])
+        .filter((m) => m.id !== 'welcome-1')
+        .map((m) => ({
+          sender: m.sender === 'user' ? 'Pengguna' : 'AI Assistant',
+          text: m.text,
+          attachedFiles: m.matchedFiles?.map((f) => f.name) || [],
+        }));
+
+      const allSessionAttached = [
+        ...(activeSession?.messages || []).flatMap((m) => m.matchedFiles || []),
+        ...currentAttached,
+      ];
+      const sessionAttachedMap = new Map<string, DriveItem>();
+      allSessionAttached.forEach((f) => {
+        if (f && f.uuid) sessionAttachedMap.set(f.uuid, f);
+      });
+      const effectiveAttached = Array.from(sessionAttachedMap.values());
+
+      const { answer, matchedFiles } = await askGeminiDriveAssistant(
+        ragQuery,
+        effectiveAttached,
+        allItems,
+        apiKey,
+        previousMessages
+      );
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -873,7 +899,8 @@ async function askGeminiDriveAssistant(
   userQuery: string,
   attachedRefFiles: DriveItem[] = [],
   allItems: DriveItem[],
-  apiKey: string
+  apiKey: string,
+  chatHistory: { sender: string; text: string; attachedFiles?: string[] }[] = []
 ): Promise<{ answer: string; matchedFiles: DriveItem[] }> {
   // Layer 1: Instant Local Guardian Pre-filter
   const localCheck = checkLocalGuardianPreFilter(userQuery);
@@ -922,6 +949,11 @@ async function askGeminiDriveAssistant(
       ? `\n📌 BERKAS REFERENSI UTAMA YANG DILAMPIRKAN OLEH PENGGUNA:\n${JSON.stringify(attachedDetails, null, 2)}\nFokuskan analisis, penalaran, dan jawaban Anda secara mendalam pada berkas referensi utama di atas!\n`
       : '';
 
+  const historySection =
+    chatHistory.length > 0
+      ? `\n📜 RIWAYAT PERCAKAPAN SEBELUMNYA DALAM SESI CHAT INI (WAKTU PENTING UNTUK KONTINUITAS KONTEKS):\n${JSON.stringify(chatHistory, null, 2)}\n`
+      : '';
+
   const promptText = `Anda adalah SmartDrive AI Guardian & Assistant, sistem kecerdasan buatan terdepan dan penjaga keamanan platform Cloud Drive pengguna.
 
 KEBIJAKAN KESELAMATAN & AI GUARDIAN RULES:
@@ -935,14 +967,19 @@ KEBIJAKAN KESELAMATAN & AI GUARDIAN RULES:
    - DIPERBOLEHKAN: Pertanyaan tentang berkas/dokumen di Drive, isi konteks AI, OCR, ringkasan, pencarian berkas, serta pertanyaan akademik/penelitian terdahulu yang relevan dengan konteks berkas di Drive.
    - DITOLAK (OUT OF SCOPE): Pertanyaan umum yang sama sekali TIDAK BERKAITAN dengan berkas Drive maupun data sistem/dokumen (Contoh: "Berapa harga BTC?", "Siapa pemenang piala dunia?", "Cara membuat bom", "Gosip selebriti"). Jelaskan bahwa sistem ini khusus melayani pengelolaan dokumen & kecerdasan Drive.
 
-PETUNJUK JAWABAN (FOKUS, LANGSUNG & RELEVAN PADA INTI PERTANYAAN):
+PETUNJUK JAWABAN & KONTINUITAS KONTEKS CHAT:
 1. FOKUS 100% PADA SPESIFIKASI PERTANYAAN PENGGUNA:
-   - Jika pengguna HANYA menanyakan jenis/klasifikasi dokumen (contoh: "ini dokumen jenis apa?"), JAWAB LANGSUNG nama spesifik jenis dokumennya secara padat dan faktual (misal: "Dokumen ini merupakan **Implementation of Arrangement (IA)** / Perjanjian Kerja Sama Pelaksanaan Nomor: 053/PSPPA/IA/X/2025 mengenai..."). DILARANG KERAS membuat daftar poin berulang (seperti poin 1, 2, 3, 4, 5) atau menyajikan informasi panjang lebar yang tidak diminta!
+   - Jika pengguna HANYA menanyakan jenis/klasifikasi dokumen (contoh: "ini dokumen jenis apa?"), JAWAB LANGSUNG nama spesifik jenis dokumennya secara padat dan faktual. DILARANG KERAS membuat daftar poin berulang (seperti poin 1, 2, 3, 4, 5) atau menyajikan informasi panjang lebar yang tidak diminta!
    - Jika pengguna menanyakan perhitungan/biaya, JAWAB FOKUS pada rincian angka dan kalkulasinya.
-   - Jika pengguna menanyakan pihak terkait, JAWAB FOKUS pada daftar pihak/instansinya.
+   - Jika pengguna menanyakan pihak terkait atau nama orang (misal: "namanya siapa?"), JAWAB FOKUS pada daftar nama/pihak terkait dari berkas yang sedang dibahas.
    - Jika pengguna meminta analisis lengkap/ringkasan, barulah berikan ulasan komprehensif.
 
-2. KAPABILITAS INTERNAL AI (GUNAKAN SESUAI KEBUTUHAN PERTANYAAN):
+2. ATURAN KONTINUITAS PERCAKAPAN (CHATHISTORY REASONING):
+   - Perhatikan RIWAYAT PERCAKAPAN SEBELUMNYA di bawah ini.
+   - Jika pengguna mengajukan pertanyaan lanjutan (seperti "namanya siapa?", "berapa harganya?", "siapa pengirimnya?", "apa tujuannya?"), PERTANYAAN TERSEBUT MERUJUK KEPADA BERKAS/SUBJEK DOKUMEN YANG SEDANG DIBAHAS PADA PERCAKAPAN SEBELUMNYA (misalnya berkas case1.pdf jika sebelumnya membahas case1.pdf)!
+   - JANGAN MEMBAHAS BERKAS LAIN DI DRIVE (seperti case2.pdf) kecuali jika pengguna secara eksplisit meminta membandingkan berkas tersebut!
+
+3. KAPABILITAS INTERNAL AI (GUNAKAN SESUAI KEBUTUHAN PERTANYAAN):
    Anda memiliki kapabilitas internal penuh untuk:
    - Mengidentifikasi nama spesifik jenis dokumen secara murni/organik dari teks & struktur visual.
    - Menganalisis konteks semantik, klausul, dan isi faktual.
@@ -950,6 +987,7 @@ PETUNJUK JAWABAN (FOKUS, LANGSUNG & RELEVAN PADA INTI PERTANYAAN):
    - Memberikan penalaran nalar (reasoning) tinggi terhadap esensi dokumen.
    Selalu gunakan kapabilitas di atas secara cerdas untuk menjawab pertanyaan pengguna secara langsung, alami, dan bebas dari format template kaku.
 
+${historySection}
 ${attachedSection}
 Daftar Berkas & Analisis Konteks AI di Drive Pengguna:
 \`\`\`json
