@@ -341,10 +341,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
     setIsLoading(true);
 
     try {
-      const apiKey =
-        (localStorage.getItem('gemini_api_key') || '').trim() ||
-        (import.meta.env.VITE_GEMINI_API_KEY || '').trim() ||
-        '';
+      const apiKey = localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
 
       // Build RAG query text with quoted text snippet if present
       let ragQuery = q;
@@ -1034,7 +1031,15 @@ Format Output JSON MURNI:
     }
   }
 
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-flash-lite-latest'];
+  const models = [
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+];
   let resultJson: any = null;
 
   for (const modelName of models) {
