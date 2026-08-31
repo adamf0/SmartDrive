@@ -549,7 +549,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
       onDragOver={handleChatDragOver}
       onDragLeave={handleChatDragLeave}
       onDrop={handleChatDrop}
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transition-all duration-300 animate-in slide-in-from-right relative overflow-hidden"
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transition-all duration-300 animate-in slide-in-from-right overflow-hidden"
     >
       {/* Drag and Drop Active Overlay */}
       {isChatDragging && (
