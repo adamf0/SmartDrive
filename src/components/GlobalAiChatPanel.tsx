@@ -198,7 +198,52 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Audio Read-Aloud / Text-to-Speech (TTS) Handler
+  // Natural Human Audio Speech Cleaner & Pre-Processor
+  const formatTextForNaturalSpeech = (rawText: string): string => {
+    let cleaned = rawText;
+
+    // 1. Remove URLs, emojis, and hashtags
+    cleaned = cleaned.replace(/https?:\/\/\S+/g, '');
+    cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+    cleaned = cleaned.replace(/#\w+/g, '');
+
+    // 2. Phonetic expansion of abbreviations, currency, titles, and academic terms for smooth speech
+    cleaned = cleaned.replace(/\bNo:\s*/gi, 'Nomor ');
+    cleaned = cleaned.replace(/\bNo\.\s*/gi, 'Nomor ');
+    cleaned = cleaned.replace(/\bRp\.?\s*([\d.]+)/gi, '$1 Rupiah');
+    cleaned = cleaned.replace(/%/g, ' persen');
+    cleaned = cleaned.replace(/\bIA\b/g, 'I A');
+    cleaned = cleaned.replace(/\bMoA\b/g, 'M o A');
+    cleaned = cleaned.replace(/\bMoU\b/g, 'M o U');
+    cleaned = cleaned.replace(/\bPKPA\b/g, 'P K P A');
+    cleaned = cleaned.replace(/\bFMIPA\b/g, 'F M I P A');
+    cleaned = cleaned.replace(/\bUNPAK\b/gi, 'Unpak');
+    cleaned = cleaned.replace(/\bS\.Farm\b/gi, 'Sarjana Farmasi');
+    cleaned = cleaned.replace(/\bS\.Kom\b/gi, 'Sarjana Komputer');
+    cleaned = cleaned.replace(/\bM\.Sc\b/gi, 'Master of Science');
+    cleaned = cleaned.replace(/\bPh\.D\b/gi, 'Doctor of Philosophy');
+    cleaned = cleaned.replace(/\bM\.Si\b/gi, 'Magister Sains');
+    cleaned = cleaned.replace(/\bNPM:?\s*/gi, 'Nomor Pokok Mahasiswa ');
+
+    // 3. Transform bullet points and numbered lists into natural speech pauses
+    cleaned = cleaned.replace(/^\s*1\.\s*/gm, ' Pertama, ');
+    cleaned = cleaned.replace(/^\s*2\.\s*/gm, ' Kedua, ');
+    cleaned = cleaned.replace(/^\s*3\.\s*/gm, ' Ketiga, ');
+    cleaned = cleaned.replace(/^\s*4\.\s*/gm, ' Keempat, ');
+    cleaned = cleaned.replace(/^\s*5\.\s*/gm, ' Kelima, ');
+    cleaned = cleaned.replace(/^\s*[*•-]\s*/gm, ' Selain itu, ');
+
+    // 4. Remove markdown symbols
+    cleaned = cleaned.replace(/[*#`_~]/g, '');
+
+    // 5. Replace newline breaks with natural speech pauses
+    cleaned = cleaned.replace(/\n+/g, '. ');
+    cleaned = cleaned.replace(/\s+/g, ' ');
+
+    return cleaned.trim();
+  };
+
+  // Audio Read-Aloud / Text-to-Speech (TTS) Handler (Natural Human Speech Engine)
   const handleToggleSpeak = (msgId: string, text: string) => {
     if (!('speechSynthesis' in window)) {
       alert('Browser Anda tidak mendukung fitur pembacaan suara (Text-to-Speech).');
@@ -213,23 +258,24 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
 
     window.speechSynthesis.cancel();
 
-    // Clean text from markdown formatting and emojis
-    const cleanSpeechText = text
-      .replace(/[*#`_~]/g, '')
-      .replace(/https?:\/\/\S+/g, '')
-      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-      .trim();
-
+    const cleanSpeechText = formatTextForNaturalSpeech(text);
     if (!cleanSpeechText) return;
 
     const utterance = new SpeechSynthesisUtterance(cleanSpeechText);
     utterance.lang = 'id-ID';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.rate = 0.93; // Human natural conversational tempo
+    utterance.pitch = 1.02; // Warm human voice pitch
 
+    // Select highest quality natural Indonesian voice available in browser/OS
     const voices = window.speechSynthesis.getVoices();
-    const indonesianVoice = voices.find((v) => v.lang.includes('id') || v.lang.includes('ID'));
-    if (indonesianVoice) utterance.voice = indonesianVoice;
+    const naturalIndonesianVoice =
+      voices.find((v) => (v.lang.includes('id') || v.lang.includes('ID')) && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Premium'))) ||
+      voices.find((v) => v.lang.includes('id') || v.lang.includes('ID')) ||
+      voices.find((v) => v.lang.startsWith('id'));
+
+    if (naturalIndonesianVoice) {
+      utterance.voice = naturalIndonesianVoice;
+    }
 
     utterance.onend = () => setSpeakingMsgId(null);
     utterance.onerror = () => setSpeakingMsgId(null);
