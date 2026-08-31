@@ -517,6 +517,9 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
           return s;
         })
       );
+
+      // Autoplay audio Text-to-Speech (TTS) immediately when AI response arrives
+      handleToggleSpeak(aiMsg.id, aiMsg.text);
     } catch (err: any) {
       console.error('Gemini Drive Assistant Error:', err);
       const errorMsg: ChatMessage = {
