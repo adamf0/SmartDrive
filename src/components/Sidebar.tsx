@@ -174,7 +174,7 @@ export function Sidebar({
           >
             <div className="flex items-center gap-3">
               <FolderOpen className="w-4 h-4" />
-              <span>Arsip Saya (My Files)</span>
+              <span>Arsip Saya</span>
             </div>
           </button>
 
@@ -188,7 +188,7 @@ export function Sidebar({
           >
             <div className="flex items-center gap-3">
               <Share2 className="w-4 h-4" />
-              <span>Arsip Bersama (Shared)</span>
+              <span>Arsip Bersama</span>
             </div>
           </button>
         </div>
