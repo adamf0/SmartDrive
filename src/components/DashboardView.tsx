@@ -586,6 +586,11 @@ export function DashboardView({
                 return (
                   <tr
                     key={item.uuid}
+                    draggable={!item.isFolder}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify(item));
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
                     onClick={() => handleRowSingleClick(item)}
                     onDoubleClick={() => handleRowDoubleClick(item)}
                     className={`hover:bg-slate-50/90 transition-colors cursor-pointer group select-none ${

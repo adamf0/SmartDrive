@@ -19,6 +19,9 @@ import {
   CornerDownRight,
   Presentation,
   FileSpreadsheet,
+  Volume2,
+  VolumeX,
+  Paperclip,
 } from 'lucide-react';
 import type { DriveItem } from '../services/driveDatabase';
 import { parseAndRepairJson } from '../utils/geminiVisionApi';
@@ -190,7 +193,124 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
   const [attachedRefFiles, setAttachedRefFiles] = useState<DriveItem[]>([]);
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [selectedTextPopup, setSelectedTextPopup] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+  const [isChatDragging, setIsChatDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Audio Read-Aloud / Text-to-Speech (TTS) Handler
+  const handleToggleSpeak = (msgId: string, text: string) => {
+    if (!('speechSynthesis' in window)) {
+      alert('Browser Anda tidak mendukung fitur pembacaan suara (Text-to-Speech).');
+      return;
+    }
+
+    if (speakingMsgId === msgId) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    // Clean text from markdown formatting and emojis
+    const cleanSpeechText = text
+      .replace(/[*#`_~]/g, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .trim();
+
+    if (!cleanSpeechText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanSpeechText);
+    utterance.lang = 'id-ID';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+    const indonesianVoice = voices.find((v) => v.lang.includes('id') || v.lang.includes('ID'));
+    if (indonesianVoice) utterance.voice = indonesianVoice;
+
+    utterance.onend = () => setSpeakingMsgId(null);
+    utterance.onerror = () => setSpeakingMsgId(null);
+
+    setSpeakingMsgId(msgId);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Drag and Drop Handler for Chat Panel (From Archive Table or Computer Files)
+  const handleChatDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsChatDragging(true);
+  };
+
+  const handleChatDragLeave = () => {
+    setIsChatDragging(false);
+  };
+
+  const handleChatDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsChatDragging(false);
+
+    // 1. Drop item from Archive Table Row (application/json)
+    const jsonItem = e.dataTransfer.getData('application/json');
+    if (jsonItem) {
+      try {
+        const item: DriveItem = JSON.parse(jsonItem);
+        if (item && item.uuid) {
+          setShowHistoryView(false);
+          setAttachedRefFiles((prev) => {
+            if (prev.some((f) => f.uuid === item.uuid)) return prev;
+            return [...prev, item];
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('Failed to parse dropped table row item:', err);
+      }
+    }
+
+    // 2. Drop files from Computer
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setShowHistoryView(false);
+      const fileArray = Array.from(e.dataTransfer.files);
+      for (const file of fileArray) {
+        const sizeKB = Math.round(file.size / 1024) || 1;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const src = (ev.target?.result as string) || '';
+          const newDriveItem: DriveItem = {
+            id: Date.now(),
+            uuid: `file-attached-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name,
+            originalName: file.name,
+            isFolder: false,
+            parentId: 'root',
+            folderId: 'root',
+            fileType: file.type || 'application/octet-stream',
+            fileSizeKB: sizeKB,
+            fileDataUrl: src,
+            ownerEmail: 'user@pakuan.ac.id',
+            sharedWithEmails: [],
+            category: 'umum',
+            categoryName: 'Umum',
+            status: 'done',
+            processingProgress: 100,
+            currentJobTask: 'Siap',
+            uploadedAt: new Date().toLocaleDateString('id-ID'),
+            uploadedBy: 'User',
+            classificationMethod: 'manual',
+          };
+
+          setAttachedRefFiles((prev) => {
+            if (prev.some((f) => f.name === file.name && f.fileSizeKB === sizeKB)) return prev;
+            return [...prev, newDriveItem];
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
 
   // Text selection handler in chat log (Gambar 1)
   const handleChatTextSelection = () => {
@@ -425,7 +545,22 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transition-all duration-300 animate-in slide-in-from-right">
+    <aside
+      onDragOver={handleChatDragOver}
+      onDragLeave={handleChatDragLeave}
+      onDrop={handleChatDrop}
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transition-all duration-300 animate-in slide-in-from-right relative overflow-hidden"
+    >
+      {/* Drag and Drop Active Overlay */}
+      {isChatDragging && (
+        <div className="absolute inset-0 z-50 bg-indigo-600/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-white text-center border-4 border-dashed border-white/60 animate-in fade-in">
+          <Sparkles className="w-12 h-12 text-amber-300 animate-bounce mb-3" />
+          <h4 className="text-lg font-extrabold">Drop Berkas di Sini</h4>
+          <p className="text-xs text-indigo-100 mt-1 max-w-xs">
+            Berkas akan otomatis dilampirkan sebagai rujukan analisis AI Chat
+          </p>
+        </div>
+      )}
       {/* Header Panel */}
       <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white shadow-md">
         <div className="flex items-center gap-2.5">
@@ -624,7 +759,33 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
                 >
                   <div className="flex items-center justify-between text-[10px] opacity-75 font-mono">
                     <span>{msg.sender === 'user' ? 'Anda' : 'Gemini AI Assistant'}</span>
-                    <span>{msg.timestamp}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{msg.timestamp}</span>
+                      {msg.sender === 'ai' && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSpeak(msg.id, msg.text)}
+                          className={`p-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                            speakingMsgId === msg.id
+                              ? 'bg-indigo-100 text-indigo-700 font-bold'
+                              : 'hover:bg-slate-100 text-slate-400 hover:text-slate-700'
+                          }`}
+                          title={speakingMsgId === msg.id ? 'Hentikan Pembacaan Suara' : 'Bacakan Jawaban Ini (Audio TTS)'}
+                        >
+                          {speakingMsgId === msg.id ? (
+                            <>
+                              <VolumeX className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                              <span className="text-[10px] text-indigo-600 font-bold">Hentikan</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-3.5 h-3.5" />
+                              <span className="text-[10px] hidden xs:inline">Bacakan</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Quoted Text Snippet inside User Message Bubble (Gambar 1) */}
@@ -837,7 +998,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
             </div>
           )}
 
-          {/* Input Form */}
+          {/* Input Form with Multi-file Attachment Picker */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -845,6 +1006,63 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
             }}
             className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
           >
+            <input
+              type="file"
+              ref={chatFileInputRef}
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  const files = Array.from(e.target.files);
+                  for (const file of files) {
+                    const sizeKB = Math.round(file.size / 1024) || 1;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const src = (ev.target?.result as string) || '';
+                      const newDriveItem: DriveItem = {
+                        id: Date.now(),
+                        uuid: `file-attached-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        name: file.name,
+                        originalName: file.name,
+                        isFolder: false,
+                        parentId: 'root',
+                        folderId: 'root',
+                        fileType: file.type || 'application/octet-stream',
+                        fileSizeKB: sizeKB,
+                        fileDataUrl: src,
+                        ownerEmail: 'user@pakuan.ac.id',
+                        sharedWithEmails: [],
+                        category: 'umum',
+                        categoryName: 'Umum',
+                        status: 'done',
+                        processingProgress: 100,
+                        currentJobTask: 'Siap',
+                        uploadedAt: new Date().toLocaleDateString('id-ID'),
+                        uploadedBy: 'User',
+                        classificationMethod: 'manual',
+                      };
+
+                      setAttachedRefFiles((prev) => {
+                        if (prev.some((f) => f.name === file.name && f.fileSizeKB === sizeKB)) return prev;
+                        return [...prev, newDriveItem];
+                      });
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={() => chatFileInputRef.current?.click()}
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 border border-slate-200 transition-all cursor-pointer shrink-0"
+              title="Lampirkan Beberapa Berkas Sekaligus (+)"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
             <input
               ref={inputRef}
               type="text"
@@ -861,7 +1079,7 @@ export const GlobalAiChatPanel: React.FC<GlobalAiChatPanelProps> = ({
             <button
               type="submit"
               disabled={(!inputQuery.trim() && attachedRefFiles.length === 0) || isLoading}
-              className="p-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+              className="p-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
